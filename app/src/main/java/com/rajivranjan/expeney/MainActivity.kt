@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.mutableStateListOf
 import com.rajivranjan.expeney.ui.theme.ExpeneyTheme
 
 class MainActivity : ComponentActivity() {
@@ -68,6 +71,9 @@ fun ExpenseInputScreen() {
 
         var expenseAmount by remember { mutableStateOf("") }
 
+        val expenseList = remember { mutableStateListOf<Expense>() }
+
+
 
         TextField(
             value = expenseName,
@@ -88,9 +94,38 @@ fun ExpenseInputScreen() {
         )
         Spacer(modifier = Modifier.padding(24.dp))
 
-        Button(onClick = {},
+        Button(onClick = {
+            if(expenseName.isNotBlank() && expenseAmount.isNotBlank()) {
+                expenseList.add(Expense(expenseName,expenseAmount))
+                expenseName = ""
+                expenseAmount = ""
+            }
+
+        },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp)) { Text(text = "Add Expense") }}
+                .padding(top = 8.dp))
+        { Text(text = "Add Expense") }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+        ) {
+            items(expenseList){
+                expense ->
+                Column { Text(text = "Name: ${expense.name} ")
+                    Text(text = "Amount: ₹${expense.amount}") }
+            }
+        }
+
+
     }
 
+
+    }
+
+data class Expense(
+    val name:String,
+    val amount:String
+)
