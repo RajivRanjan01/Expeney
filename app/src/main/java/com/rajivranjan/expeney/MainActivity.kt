@@ -35,6 +35,8 @@ fun ExpenseInputScreen() {
     var expenseName by remember { mutableStateOf("") }
     var expenseAmount by remember { mutableStateOf("") }
     val expenseList = remember { mutableStateListOf<Expense>() }
+    val totalAmount = expenseList.sumOf { it.amount.toIntOrNull() ?: 0 }
+
 
     Column(
         modifier = Modifier
@@ -50,6 +52,14 @@ fun ExpenseInputScreen() {
             fontWeight = FontWeight.Bold,
             color = Color(0xFF2196F3)
         )
+        Text(
+            text = "Total Spent: ₹$totalAmount",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF4CAF50),
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
 
         TextField(
             value = expenseName,
