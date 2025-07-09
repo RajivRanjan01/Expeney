@@ -7,7 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.material.*
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,6 +21,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rajivranjan.expeney.ui.theme.ExpeneyTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextField
+import androidx.compose.material3.HorizontalDivider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,13 +38,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ExpenseInputScreen() {
     var expenseName by remember { mutableStateOf("") }
     var expenseAmount by remember { mutableStateOf("") }
     val expenseList = remember { mutableStateListOf<Expense>() }
-    val totalAmount = expenseList.sumOf { it.amount.toIntOrNull() ?: 0 }
-
+    val totalAmount = expenseList.sumOf { it.amount.toDoubleOrNull() ?: 0.0 }
 
     Column(
         modifier = Modifier
@@ -45,7 +53,6 @@ fun ExpenseInputScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-
         Text(
             text = "Track Your Expense 💸",
             fontSize = 24.sp,
@@ -53,13 +60,12 @@ fun ExpenseInputScreen() {
             color = Color(0xFF2196F3)
         )
         Text(
-            text = "Total Spent: ₹$totalAmount",
+            text = "Total Spent: ₹${"%.2f".format(totalAmount)}",
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
             color = Color(0xFF4CAF50),
             modifier = Modifier.padding(top = 8.dp)
         )
-
 
         TextField(
             value = expenseName,
@@ -100,23 +106,39 @@ fun ExpenseInputScreen() {
         LazyColumn(
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(expenseList) { expense ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+            items(expenseList, key = { it.hashCode() }) { expense ->
+                val dismissState = rememberDismissState()
+                if (dismissState.isDismissed(DismissDirection.StartToEnd) ||
+                    dismissState.isDismissed(DismissDirection.EndToStart)
                 ) {
-                    Text(
-                        text = "Name: ${expense.name}",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Amount: ₹${expense.amount}",
-                        color = Color(0xFF4CAF50)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Divider(color = Color.LightGray, thickness = 1.dp)
+                    expenseList.remove(expense)
                 }
+
+                SwipeToDismiss(
+                    state = dismissState,
+                    directions = setOf(
+                        DismissDirection.StartToEnd,
+                        DismissDirection.EndToStart
+                    ),
+                    background = {},
+                    dismissContent = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Name: ${expense.name}",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Amount: ₹${expense.amount}",
+                                color = Color(0xFF4CAF50)
+                            )
+                            HorizontalDivider(color = Color.LightGray, thickness = 1.dp)
+                        }
+                    }
+                )
             }
         }
     }
