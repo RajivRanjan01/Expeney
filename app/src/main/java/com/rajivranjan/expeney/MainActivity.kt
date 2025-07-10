@@ -7,32 +7,46 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rajivranjan.expeney.db.ExpenseDatabase
+import com.rajivranjan.expeney.db.ExpenseRepository
+import com.rajivranjan.expeney.viewmodel.ExpenseViewModel
 import com.rajivranjan.expeney.ui.theme.ExpeneyTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.Button
-import androidx.compose.material3.TextField
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = LocalContext.current
+            val database = remember { ExpenseDatabase.getDatabase(context) }
+            val repository = remember { ExpenseRepository(database.expenseDao()) }
+            val viewModel: ExpenseViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        return ExpenseViewModel(repository) as T
+                    }
+                }
+            )
+
             ExpeneyTheme {
-                ExpenseInputScreen()
+                ExpenseInputScreen(viewModel)
             }
         }
     }
@@ -40,11 +54,11 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ExpenseInputScreen() {
+fun ExpenseInputScreen(viewModel: ExpenseViewModel) {
     var expenseName by remember { mutableStateOf("") }
     var expenseAmount by remember { mutableStateOf("") }
-    val expenseList = remember { mutableStateListOf<Expense>() }
-    val totalAmount = expenseList.sumOf { it.amount.toDoubleOrNull() ?: 0.0 }
+    val expenses by viewModel.expenses.collectAsState()
+    val totalAmount = expenses.sumOf { it.amount }
 
     Column(
         modifier = Modifier
@@ -59,6 +73,7 @@ fun ExpenseInputScreen() {
             fontWeight = FontWeight.Bold,
             color = Color(0xFF2196F3)
         )
+
         Text(
             text = "Total Spent: ₹${"%.2f".format(totalAmount)}",
             fontSize = 18.sp,
@@ -90,28 +105,30 @@ fun ExpenseInputScreen() {
         Button(
             onClick = {
                 if (expenseName.isNotBlank() && expenseAmount.isNotBlank()) {
-                    expenseList.add(Expense(expenseName, expenseAmount))
-                    expenseName = ""
-                    expenseAmount = ""
+                    val amount = expenseAmount.toDoubleOrNull()
+                    if (amount != null) {
+                        viewModel.addExpense(expenseName, amount)
+                        expenseName = ""
+                        expenseAmount = ""
+                    }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Add Expense")
+            Text("Add Expense")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(expenseList, key = { it.hashCode() }) { expense ->
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(expenses, key = { it.hashCode() }) { expense ->
                 val dismissState = rememberDismissState()
-                if (dismissState.isDismissed(DismissDirection.StartToEnd) ||
+
+                if (
+                    dismissState.isDismissed(DismissDirection.StartToEnd) ||
                     dismissState.isDismissed(DismissDirection.EndToStart)
                 ) {
-                    expenseList.remove(expense)
+                    viewModel.deleteExpense(expense)
                 }
 
                 SwipeToDismiss(
@@ -144,15 +161,10 @@ fun ExpenseInputScreen() {
     }
 }
 
-data class Expense(
-    val name: String,
-    val amount: String
-)
-
 @Preview(showBackground = true)
 @Composable
 fun ExpenseInputScreenPreview() {
     ExpeneyTheme {
-        ExpenseInputScreen()
+        Text("Preview not supported with ViewModel")
     }
 }
