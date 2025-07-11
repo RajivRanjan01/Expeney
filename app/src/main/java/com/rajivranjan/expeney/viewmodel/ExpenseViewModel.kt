@@ -22,12 +22,13 @@ class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() 
                 initialValue = emptyList()
             )
 
-    fun addExpense(name: String, amount: Double) {
-        val newExpense = ExpenseEntity(name = name, amount = amount)
+    fun addExpense(name: String, amount: Double, category: String) {
+        val newExpense = ExpenseEntity(name = name, amount = amount, category = category)
         viewModelScope.launch {
             repository.insertExpense(newExpense)
         }
     }
+
 
     fun deleteExpense(expense: ExpenseEntity) {
         viewModelScope.launch {

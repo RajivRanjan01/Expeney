@@ -52,9 +52,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseInputScreen(viewModel: ExpenseViewModel) {
+    val categories = listOf("Food", "Transport", "Shopping", "Bills", "Other")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(categories[0]) }
+
     var expenseName by remember { mutableStateOf("") }
     var expenseAmount by remember { mutableStateOf("") }
     val expenses by viewModel.expenses.collectAsState()
@@ -100,6 +104,39 @@ fun ExpenseInputScreen(viewModel: ExpenseViewModel) {
                 .padding(top = 16.dp)
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                readOnly = true,
+                value = selectedCategory,
+                onValueChange = {},
+                label = { Text("Select category") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category) },
+                        onClick = {
+                            selectedCategory = category
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
@@ -107,9 +144,10 @@ fun ExpenseInputScreen(viewModel: ExpenseViewModel) {
                 if (expenseName.isNotBlank() && expenseAmount.isNotBlank()) {
                     val amount = expenseAmount.toDoubleOrNull()
                     if (amount != null) {
-                        viewModel.addExpense(expenseName, amount)
+                        viewModel.addExpense(expenseName, amount, selectedCategory)
                         expenseName = ""
                         expenseAmount = ""
+                        selectedCategory = categories[0]
                     }
                 }
             },
@@ -151,6 +189,10 @@ fun ExpenseInputScreen(viewModel: ExpenseViewModel) {
                             Text(
                                 text = "Amount: ₹${expense.amount}",
                                 color = Color(0xFF4CAF50)
+                            )
+                            Text(
+                                text = "Category: ${expense.category}",
+                                color = Color.Gray
                             )
                             HorizontalDivider(color = Color.LightGray, thickness = 1.dp)
                         }
